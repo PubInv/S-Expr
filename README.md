@@ -63,5 +63,7 @@ if (String("m").equals(nth(s,0))) {
 
 I suspect and Arduino expect can explain a better way of doing this.
 
+
+
 Because it is tedious using Arduino-Mk to put a .ino file that allows testing in the library code,
-I have created a separate repo, S-Expr-Test, which contains a .ino file which you can run directly to execute the automated tests that I used to develop this.
+I have created a separate repo, [Arduino-S-Expr-Test](https://github.com/PIFAH/Arduino-S-Expr-Test), which contains a .ino file which you can run directly to execute the automated tests that I used to develop this.
