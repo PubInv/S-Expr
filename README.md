@@ -4,6 +4,7 @@ An Arduino library implementing a simple and incomplete S-Expr functionality, mo
 ## Status
 
 At the time of this writing: buggy, incomplete, weird, and poorly written.
+It is unclear that it has much to recommend it of this far more mature [project](https://github.com/bblanchon/ArduinoJson) for using JSON.
 
 ## Motivation
 
