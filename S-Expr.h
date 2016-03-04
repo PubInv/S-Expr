@@ -19,9 +19,9 @@ typedef struct parse_result {
   sexpr* s;
 } PR;
 
+// sexpr NIL;
 
-    
-// sexpr NIL = { .tp = NIL_T, .car = NULL, .cdr = NULL };
+sexpr* cons_nil();
 
 sexpr* cons_int(int n);
 
@@ -39,10 +39,11 @@ sexpr* list(int n,sexpr* exps);
 
 sexpr* nth(sexpr* expr,int n);
 
+int s_length(sexpr* s);
+
 void print_sexpr(sexpr* s,boolean inlist);
 
 void print_sexpr(sexpr* s);
-
 
 String print_as_String(sexpr* s);
 
@@ -54,5 +55,9 @@ boolean equal(sexpr* a, sexpr* b);
 String value_s(sexpr* s);
 
 int value_i(sexpr* s);
+
+// These functions are public exposed, mainly so that they will be available to the tests!
+
+String getToken(String str,int n);
 
 #endif
