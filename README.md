@@ -42,12 +42,13 @@ At the time of this writing, there are probably memory leaks that would absolute
 
 Basically, put this directory (S-Expr) in the Arduino/libraries directory. Then in your Arduino code put:
 
+```C
 #include <S-Expr.h>
-
-To run the tests, simply execute S-Expr.ino in this directory.
+```
 
 To use, do something like:
 
+```C
 sexpr* s = parse(str);
 
 if (String("m").equals(nth(s,0))) {
@@ -56,3 +57,11 @@ if (String("m").equals(nth(s,0))) {
 
 }
 
+```
+
+## Tests
+
+I suspect and Arduino expect can explain a better way of doing this.
+
+Because it is tedious using Arduino-Mk to put a .ino file that allows testing in the library code,
+I have created a separate repo, S-Expr-Test, which contains a .ino file which you can run directly to execute the automated tests that I used to develop this.
