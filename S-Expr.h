@@ -6,6 +6,10 @@
 // S-Expr Copyright Robert L. Read, 2016
 // Published under GPL.
 // Eventually this may turn into an Arduino library that I publish. Right now it is a draft.
+extern const int NIL_T;
+extern const int CONS_T;
+extern const int INT_T;
+extern const int STRING_T;
 
 
 typedef struct sexpr {
