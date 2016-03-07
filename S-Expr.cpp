@@ -101,11 +101,11 @@ String value_s(sexpr* s) {
 
 int value_i(sexpr* s) {
   if (s->tp == INT_T) {
-    return *(int*) (s->car);
+    return ((int) (s->car));
   } else {
-  Serial.println("Value taken of non-int!");
-  Serial.println(print_as_String(s));
-  return INT_MIN;
+    Serial.println("Value taken of non-int!");
+    Serial.println(print_as_String(s));
+    return INT_MIN;
   }
 }
 
