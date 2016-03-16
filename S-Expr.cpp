@@ -66,7 +66,7 @@ const int INT_T = 2;
 const int STRING_T = 3;
 
     
-sexpr NIL = { .tp = NIL_T, .car = NULL, .cdr = NULL };
+sexpr NIL = { .car = NULL, .cdr = NULL, .tp = NIL_T  };
 
 // This is a singleton
 sexpr* cons_nil() {
@@ -81,13 +81,16 @@ sexpr* cons_int(int n) {
   return s;
 }
 
-sexpr* cons_string(String str) {
-  sexpr* s = new sexpr();
+sexpr* cons_string(TOKEN tk) {
+  sexpr* s = new sexpr;
   s->tp = STRING_T;
-  int len = str.length();
-  char* buf = new char[len+1];
-  str.toCharArray(buf,len+1);
-  s->car = (sexpr*) buf;
+  s->car = (sexpr*) tk.buff;
+  // Are we guaranteed that sizeof(sexpr*) >= sizeof(int)?
+  if (sizeof(sexpr*) < sizeof(int)) {
+    Serial.println("Complete catastrophe, Rob really clustered this one.");
+  }
+  s->cdr = (sexpr*) tk.first;
+  s->extra = (int) tk.terminator;
   return s;
 }
 
@@ -121,28 +124,76 @@ boolean null(sexpr *s) {
   return s->tp == NIL_T; 
 }
 
-void del(sexpr* car) {
+void del(sexpr* s) {
+  if (s) {
+    switch (s->tp) {
+    case NIL_T:
+      // because this is a constant, we don't delete it.
+      break;
+    case CONS_T:
+      del(s->car);
+      del(s->cdr);
+      delete s;
+      break;
+    case INT_T:
+      delete s;
+      break;
+    case STRING_T:
+      delete s;
+      break;
+    default:
+      Serial.println("Del Catastrophe!");
+      Serial.println(s->tp);
+      break;
+    }
+
+  }
 }
 
 // A little tricky here, we need to produce a list of tokens.
 // Everytime we encounter (,), or whitespace, we are generating a new token.
 // return the next token that starts at n.
-String getToken(String str,int n) {
-  int len = str.length() - n;
+// String getToken(String str,int n) {
+//   int len = str.length() - n;
+//   int i = 0;
+//   while(i < len) {
+//     char d = str.charAt(n+i);
+//     if (d == '(') {
+//       return str.substring(n,(i == 0) ? n+1 : n+i);
+//     } else if (d == ')') {
+//       return str.substring(n,(i == 0) ? n+1 : n+i);
+//     } else if (d == ' ') {
+//       return str.substring(n,(i == 0) ? n+1 : n+i);
+//     } else {
+//       i++;
+//     }
+//   }
+//   return str.substring(n,n+i);
+// }
+
+TOKEN getToken(char *str,int n) {
+  int len = strlen(str);
   int i = 0;
   while(i < len) {
-    char d = str.charAt(n+i);
-    if (d == '(') {
-      return str.substring(n,(i == 0) ? n+1 : n+i);
-    } else if (d == ')') {
-      return str.substring(n,(i == 0) ? n+1 : n+i);
-    } else if (d == ' ') {
-      return str.substring(n,(i == 0) ? n+1 : n+i);
+    char d = str[i+n];
+    if ((d == '(') || (d == ')') || (d == ' ')) {
+      TOKEN tk = { .buff = str, .first = n, .terminator = (i == 0) ? n+1 : n+i };
+      return tk;
     } else {
       i++;
     }
   }
-  return str.substring(n,n+i);
+  TOKEN tk = { .buff = str, .first = n, .terminator = n+i };
+  return tk;
+}
+
+void printTokenForDebugging(TOKEN tk) {
+  Serial.println("tk.buff");
+  Serial.println(tk.buff);
+  Serial.println("first");
+  Serial.println(tk.first);
+  Serial.println("terminator");
+  Serial.println(tk.terminator);
 }
 
 boolean StringIsNatural(String str) {
@@ -155,36 +206,76 @@ boolean StringIsNatural(String str) {
     return true;
 }
 
-parse_result parse_symbol(String str,int n) {
-    String token = getToken(str,n);
+boolean TokenIsNatural(TOKEN tk) {
+  int len = tk.terminator - tk.first;
+  for(int i = 0; i < len; i++) {
+    char c = tk.buff[i+tk.first];
+    if (!isDigit(c))
+      return false;
+  }
+  return true;
+}
+
+int TokenToInt(TOKEN tk) {
+  String s = "";
+  int len = tk.terminator - tk.first;
+  char str[len+1];
+  for(int i = 0; i < len; i++) {
+    char c = tk.buff[i+tk.first];
+    str[i] = c;
+    if (!isDigit(c)) {
+      Serial.println("Catastrophic call of TokenToInt on non-int!");
+      return INT_MIN;
+    }
+  }
+  str[len] = '\0';
+  return atoi(str);
+  
+}
+int TokenLength(TOKEN tk) { return tk.terminator - tk.first; }
+
+parse_result parse_symbol(char *str,int n) {
+    TOKEN token = getToken(str,n);
     parse_result pr;
     sexpr* s;
     
-    if (StringIsNatural(token)) {
-      s = cons_int(token.toInt());      
+    if (TokenIsNatural(token)) {
+      s = cons_int(TokenToInt(token));      
     } else {
-      s = cons_string(token);      
+      s = cons_string(token);
     }
 
     pr.s = s;
-    pr.used_to = n+token.length();
+    pr.used_to = n+TokenLength(token);
     return pr;
 }
 
-parse_result parse_list(String str,int n) {
+boolean TokenEquals_string(TOKEN tk, char const *str) {
+  char *tkstr = tk.buff+tk.first;
+  int i = 0;
+  int len = tk.terminator - tk.first;
+  while((i < len) && (*str != 0)) {
+    if (*tkstr != *str) return false;
+    i++;
+    tkstr++;
+    str++;
+  }
+  return (i == len) && (*str == '\0');
+}
+parse_result parse_list(char * str,int n) {
   int k = n;
-  String token = getToken(str,k);
+  TOKEN token = getToken(str,k);
 
   // This kind of sucks...
   parse_result all[100];
   int cur = 0;
-  
-  while (!token.equals(")") && !token.equals("")) {
+
+  while (!TokenEquals_string(token,")") && !TokenEquals_string(token,"")) {
     // if whitespace, we do nothing..
-    if (token.equals(" ")) {
+    if (TokenEquals_string(token," ")) {
       k = k + 1;
       token = getToken(str,k);
-    } else if (token.equals("(")) {
+    } else if (TokenEquals_string(token,"(")) {
 	parse_result r = parse_list(str,k+1);
 	all[cur++] = r;
 	k = r.used_to;
@@ -192,13 +283,14 @@ parse_result parse_list(String str,int n) {
     } else {
       parse_result r = parse_symbol(str,k);
       k = r.used_to;
- 
       token = getToken(str,k);
+      
       all[cur++] = r;
     }
   }
-  if (token.equals("")) {
+  if (TokenEquals_string(token,"")) {
     Serial.println("UNABLE TO PARSE, RETURNING NL");
+    printTokenForDebugging(token);
     parse_result pr;
     pr.s = (sexpr*) null;
     pr.used_to = 0;
@@ -218,17 +310,17 @@ parse_result parse_list(String str,int n) {
 
 
 // We'll worry about dotted expressions later!
-parse_result parse(String str, int n) {
-  String token = getToken(str,n);
+parse_result parse(char *str, int n) {
+    TOKEN token = getToken(str,n);
   // if we start an S-Expression, we call parse-S-Exprsion.
-  if (token.equals("(")) {
+  if (TokenEquals_string(token,"(")) {
     return parse_list(str,n+1);
-  } else if (token.equals(")")) { // we can return NIL
+  } else if (TokenEquals_string(token,")")) { // we can return NIL
     parse_result pr;
     pr.s = &NIL;
     pr.used_to = 1+n;
     return pr;
-  } else if (token.equals(" ")) { //
+  } else if (TokenEquals_string(token," ")) { //
     return parse(str,n+1);
   } else {
     // now it must be content, so decide if it an integer
@@ -236,7 +328,9 @@ parse_result parse(String str, int n) {
   }
 }
 
-sexpr* parse(String str) {
+// TODO: We have no intention of changing this, so should it be
+// char const *?  
+sexpr* parse(char  *str) {
   return parse(str,0).s;
 }
 
@@ -310,11 +404,21 @@ String print_as_String(sexpr* s,boolean inlist) {
     return String((int) (s->car));
     break;
   case STRING_T:
-    return String((char *) (s->car));
+    {
+      char *strx = (char *) s->car;
+      int i = 0;
+      int lena = (int) s->extra - (int) s->cdr;
+      strx += (int) s->cdr;
+      while((i < lena)) {
+	str = str + *strx;
+	i++;
+	strx++;
+      }
+     }
     break;
   default:
-    Serial.println("Catastrophe!");
-    return String("Catastrophe!");
+    Serial.println("print Catastrophe!");
+    return String("print Catastrophe!");
     break;
   }
   return str;
@@ -340,7 +444,17 @@ void canon_print_sexpr(sexpr* s) {
       Serial.print((int) (s->car));
       break;
     case STRING_T:
-      Serial.print((char *) (s->car));
+    {
+      char *strx = (char *) s->car;
+      int i = 0;
+      int lena = (int) s->extra - (int) s->cdr;
+      strx += (int) s->cdr;
+      while((i < lena)) {
+	Serial.print(*strx);
+	i++;
+	strx++;
+      }
+     }
       break;
     default:
       Serial.println("Catastrophe!");
@@ -361,9 +475,27 @@ boolean equal(sexpr* a, sexpr* b) {
     case INT_T:
       return (int) a->car == (int) b->car;
     case STRING_T:
-      return String((char *)(a->car)).equals(String((char *)(b->car)));
+      // TODO: This is wrong, we are storing token stuff now!
+      {
+      char *stra = (char *) a->car;
+      char *strb = (char *) b->car;
+      int i = 0;
+      int lena = (int) a->extra - (int) a->cdr;
+      int lenb = (int) b->extra - (int) b->cdr;
+      stra += (int) a->cdr;
+      strb += (int) b->cdr;
+      while((i < lena) && (i < lenb)) {
+	if (*stra != *strb) {
+	  return false;
+	}
+	i++;
+	stra++;
+	strb++;
+      }
+      return (i == lena) && (i == lenb);
+      }
     default:
-      Serial.println("Catastrophe!");
+      Serial.println("Catastrophein Equal!");
     }
     return false;
   }

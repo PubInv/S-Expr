@@ -13,9 +13,10 @@ extern const int STRING_T;
 
 
 typedef struct sexpr {
-  int tp;
   sexpr* car;
   sexpr* cdr;
+  int tp;
+  int extra;
 } Sexpr;
 
 typedef struct parse_result {
@@ -23,20 +24,32 @@ typedef struct parse_result {
   sexpr* s;
 } PR;
 
+typedef struct token {
+  char* buff;
+  int first;
+  int terminator; // (terminator == first :=> "")
+} TOKEN;
+
 // sexpr NIL;
 
 sexpr* cons_nil();
 
 sexpr* cons_int(int n);
 
-sexpr* cons_string(String str);
+TOKEN getToken(char* str,int n);
+
+sexpr* cons_string(TOKEN tk);
+
 sexpr* cons(sexpr* car, sexpr* cdr);
 
 boolean null(sexpr *s);
 void del(sexpr* car);
 
+void printTokenForDebugging(TOKEN tk);
+  
+boolean TokenEquals_string(TOKEN tk, char const *str);
 
-sexpr* parse(String str);
+sexpr* parse(char* str);
 
 // We need to be very careful here about memory allocation for this.
 sexpr* list(int n,sexpr* exps);
