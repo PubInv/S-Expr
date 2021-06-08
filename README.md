@@ -8,13 +8,13 @@ It is unclear that it has much to recommend it of this far more mature [project]
 
 ## Motivation
 
-Often in using an Arduino, particularly for robotics, one wishes to communicate commands to the Arudino. Ordinarily this is done with serial communications. In the simplest case you simply send a character to teh Arduino, and the Arduino inteprets it as a command.
+Often in using an Arduino, particularly for robotics, one wishes to communicate commands to the Arduino. Ordinarily this is done with serial communications. In the simplest case you simply send a character to the Arduino, and the Arduino interprets it as a command.
 
 But when the set of comands and complexity of those commands grows greater, once must implement a tiny protocol or language of some kind. For example, I am motivated by the need to control a 6-channel actuator controller, which must report the position of the actuators, and allow them to be moved to arbitrary positions.
 
 I personally believe it is a mistake to create a new protocol when we have at hand such protocols aleady. JSON is perhaps the most popular at present.
 
-However, JSON is merely a syntactic sugar on top of S-Expressions (from LISP.) Since I am programming my system in LISP already, I have chosen to do this in the LISP-style, although I suspect it would be more reusable and understandable if I did int in JSON.
+However, JSON is merely a syntactic sugar on top of S-Expressions (from LISP.) Since I am programming my system in LISP already, I have chosen to do this in the LISP-style, although I suspect it would be more reusable and understandable if I did in JSON.
 
 Basically you want to send on the serial port commands like:
 
